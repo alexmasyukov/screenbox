@@ -1,0 +1,65 @@
+name: screenbox
+options:
+  bundleIdPrefix: com.alexmasyukov
+  deploymentTarget:
+    macOS: "14.0"
+  createIntermediateGroups: true
+  groupSortPosition: top
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    MACOSX_DEPLOYMENT_TARGET: "14.0"
+    ENABLE_HARDENED_RUNTIME: YES
+    ENABLE_APP_SANDBOX: NO
+    CODE_SIGN_STYLE: Automatic
+    CODE_SIGN_IDENTITY: "-"
+    DEVELOPMENT_TEAM: ""
+
+targets:
+  screenbox:
+    type: application
+    platform: macOS
+    sources:
+      - path: screenbox
+    info:
+      path: screenbox/Info.plist
+      properties:
+        CFBundleName: screenbox
+        CFBundleDisplayName: Screenbox
+        CFBundleIdentifier: com.alexmasyukov.screenbox
+        CFBundleShortVersionString: "1.0"
+        CFBundleVersion: "1"
+        LSMinimumSystemVersion: "14.0"
+        LSUIElement: true
+        NSScreenCaptureUsageDescription: "Screenbox captures the screen region inside the frame to save as a PNG."
+        NSHighResolutionCapable: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.alexmasyukov.screenbox
+        PRODUCT_NAME: screenbox
+        GENERATE_INFOPLIST_FILE: NO
+        COMBINE_HIDPI_IMAGES: YES
+    dependencies:
+      - sdk: AppKit.framework
+      - sdk: SwiftUI.framework
+      - sdk: ScreenCaptureKit.framework
+      - sdk: UniformTypeIdentifiers.framework
+      - sdk: CoreGraphics.framework
+
+schemes:
+  screenbox:
+    build:
+      targets:
+        screenbox: all
+    run:
+      config: Debug
+      executable: screenbox
+    test:
+      config: Debug
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+    archive:
+      config: Release
