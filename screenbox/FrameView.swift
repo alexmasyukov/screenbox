@@ -3,49 +3,48 @@ import AppKit
 
 struct FrameView: View {
     @ObservedObject var controller: FrameController
-
-    private let thickness: CGFloat = FrameController.borderThickness
-    private let cornerZone: CGFloat = 14
-    private let borderColor = Color(red: 0.35, green: 0.6, blue: 0.95).opacity(0.85)
+    @ObservedObject var settings: AppSettings
 
     @State private var anchorMouse: CGPoint? = nil
     @State private var anchorFrame: NSRect? = nil
 
     var body: some View {
+        let thickness = settings.borderThickness
+        let cornerZone = max(CGFloat(14), thickness + 4)
+        let color = settings.borderColor
+
         GeometryReader { geo in
             ZStack(alignment: .topLeading) {
-                Rectangle().fill(borderColor)
+                Rectangle().fill(color)
                     .frame(width: geo.size.width, height: thickness)
                     .position(x: geo.size.width / 2, y: thickness / 2)
                     .gesture(moveGesture())
 
-                Rectangle().fill(borderColor)
+                Rectangle().fill(color)
                     .frame(width: geo.size.width, height: thickness)
                     .position(x: geo.size.width / 2, y: geo.size.height - thickness / 2)
                     .gesture(moveGesture())
 
-                Rectangle().fill(borderColor)
+                Rectangle().fill(color)
                     .frame(width: thickness, height: geo.size.height)
                     .position(x: thickness / 2, y: geo.size.height / 2)
                     .gesture(moveGesture())
 
-                Rectangle().fill(borderColor)
+                Rectangle().fill(color)
                     .frame(width: thickness, height: geo.size.height)
                     .position(x: geo.size.width - thickness / 2, y: geo.size.height / 2)
                     .gesture(moveGesture())
 
-                // Invisible corner zones — resize from the closest corner. Kept transparent per spec:
-                // no visible handles, but resize behavior is preserved.
-                invisibleCorner(.topLeft)
+                invisibleCorner(.topLeft, size: cornerZone)
                     .position(x: cornerZone / 2, y: cornerZone / 2)
-                invisibleCorner(.topRight)
+                invisibleCorner(.topRight, size: cornerZone)
                     .position(x: geo.size.width - cornerZone / 2, y: cornerZone / 2)
-                invisibleCorner(.bottomLeft)
+                invisibleCorner(.bottomLeft, size: cornerZone)
                     .position(x: cornerZone / 2, y: geo.size.height - cornerZone / 2)
-                invisibleCorner(.bottomRight)
+                invisibleCorner(.bottomRight, size: cornerZone)
                     .position(x: geo.size.width - cornerZone / 2, y: geo.size.height - cornerZone / 2)
 
-                shutterButton
+                shutterButton(color: color)
                     .position(x: geo.size.width - 18, y: 18)
 
                 Circle()
@@ -60,25 +59,23 @@ struct FrameView: View {
         }
     }
 
-    private var shutterButton: some View {
+    private func shutterButton(color: Color) -> some View {
         Button {
             Task { await controller.capture() }
         } label: {
             Image(systemName: "camera.fill")
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(.white)
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(color)
                 .frame(width: 28, height: 28)
-                .background(Color.black.opacity(0.55))
-                .clipShape(Circle())
-                .overlay(Circle().stroke(Color.white.opacity(0.7), lineWidth: 1))
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }
 
-    private func invisibleCorner(_ corner: Corner) -> some View {
+    private func invisibleCorner(_ corner: Corner, size: CGFloat) -> some View {
         Rectangle()
             .fill(Color.white.opacity(0.001))
-            .frame(width: cornerZone, height: cornerZone)
+            .frame(width: size, height: size)
             .gesture(resizeGesture(corner: corner))
     }
 

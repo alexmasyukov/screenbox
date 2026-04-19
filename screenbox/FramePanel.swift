@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 
 final class FramePanel: NSPanel {
-    init(controller: FrameController) {
+    init(controller: FrameController, settings: AppSettings) {
         let frame = controller.restoreFrame()
         super.init(
             contentRect: frame,
@@ -20,7 +20,10 @@ final class FramePanel: NSPanel {
         self.ignoresMouseEvents = false
         self.hidesOnDeactivate = false
 
-        let hosting = FrameHostingView(rootView: FrameView(controller: controller))
+        let hosting = FrameHostingView(
+            rootView: FrameView(controller: controller, settings: settings),
+            settings: settings
+        )
         hosting.autoresizingMask = [.width, .height]
         self.contentView = hosting
     }
@@ -30,17 +33,29 @@ final class FramePanel: NSPanel {
 }
 
 /// Host view that forwards clicks in the transparent center through to windows underneath.
-/// Clicks on the 6px border, the 14x14 corner handles, and the shutter button are kept.
+/// The hit zone grows with the configured border thickness, with a floor of 8 px so a thin
+/// border is still comfortably grabbable.
 final class FrameHostingView<Content: View>: NSHostingView<Content> {
-    static var borderThickness: CGFloat { 6 }
-    static var cornerHandle: CGFloat { 14 }
-    static var buttonZone: CGFloat { 32 }
+    let settings: AppSettings
+
+    init(rootView: Content, settings: AppSettings) {
+        self.settings = settings
+        super.init(rootView: rootView)
+    }
+
+    @MainActor required dynamic init(rootView: Content) {
+        fatalError("use init(rootView:settings:)")
+    }
+
+    @MainActor required dynamic init?(coder aDecoder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
 
     override func hitTest(_ point: NSPoint) -> NSView? {
         let b = self.bounds
-        let t = Self.borderThickness
-        let c = Self.cornerHandle
-        let bz = Self.buttonZone
+        let t = max(settings.borderThickness, 8)
+        let c: CGFloat = max(14, t + 4)
+        let bz: CGFloat = 32
 
         let onBorder =
             point.x <= t || point.x >= b.width - t ||
@@ -52,7 +67,6 @@ final class FrameHostingView<Content: View>: NSHostingView<Content> {
             (point.x >= b.width - c && point.y <= c) ||
             (point.x >= b.width - c && point.y >= b.height - c)
 
-        // Button sits in the top-right, overlapping the border — reserve a small zone inside.
         let inButtonZone =
             point.x >= b.width - bz && point.y >= b.height - bz
 

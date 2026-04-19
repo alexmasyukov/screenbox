@@ -8,12 +8,16 @@ enum Corner: CaseIterable {
 
 @MainActor
 final class FrameController: ObservableObject {
-    static let borderThickness: CGFloat = 3
     static let minSize = CGSize(width: 200, height: 150)
     static let defaultsKey = "screenbox.frame"
 
     weak var panel: FramePanel?
+    let settings: AppSettings
     @Published var savedIndicator: Bool = false
+
+    init(settings: AppSettings) {
+        self.settings = settings
+    }
 
     func restoreFrame() -> NSRect {
         if let arr = UserDefaults.standard.array(forKey: Self.defaultsKey) as? [Double],
@@ -100,7 +104,7 @@ final class FrameController: ObservableObject {
     func capture() async {
         guard let panel else { return }
         let outer = panel.frame
-        let t = Self.borderThickness
+        let t = settings.borderThickness
         let inner = NSRect(
             x: outer.origin.x + t,
             y: outer.origin.y + t,
