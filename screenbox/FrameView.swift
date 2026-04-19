@@ -7,6 +7,7 @@ struct FrameView: View {
 
     @State private var anchorMouse: CGPoint? = nil
     @State private var anchorFrame: NSRect? = nil
+    @State private var buttonDidDrag: Bool = false
 
     var body: some View {
         let thickness = settings.borderThickness
@@ -59,17 +60,39 @@ struct FrameView: View {
         }
     }
 
+    // Click without noticeable motion → capture. Drag past a 4 px threshold → move the window instead.
     private func shutterButton(color: Color) -> some View {
-        Button {
-            Task { await controller.capture() }
-        } label: {
-            Image(systemName: "camera.fill")
-                .font(.system(size: 18, weight: .semibold))
-                .foregroundStyle(color)
-                .frame(width: 28, height: 28)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
+        Image(systemName: "camera.fill")
+            .font(.system(size: 18, weight: .semibold))
+            .foregroundStyle(color)
+            .frame(width: 28, height: 28)
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { _ in
+                        ensureAnchor()
+                        guard let anchorMouse, let anchorFrame else { return }
+                        let current = NSEvent.mouseLocation
+                        let dx = current.x - anchorMouse.x
+                        let dy = current.y - anchorMouse.y
+                        if !buttonDidDrag, abs(dx) > 4 || abs(dy) > 4 {
+                            buttonDidDrag = true
+                        }
+                        if buttonDidDrag {
+                            controller.setOrigin(from: anchorFrame, delta: CGSize(width: dx, height: dy))
+                        }
+                    }
+                    .onEnded { _ in
+                        let didDrag = buttonDidDrag
+                        clearAnchor()
+                        buttonDidDrag = false
+                        if didDrag {
+                            controller.persist()
+                        } else {
+                            Task { await controller.capture() }
+                        }
+                    }
+            )
     }
 
     private func invisibleCorner(_ corner: Corner, size: CGFloat) -> some View {
