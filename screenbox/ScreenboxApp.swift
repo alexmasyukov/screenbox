@@ -10,12 +10,16 @@ struct ScreenboxApp: App {
     }
 }
 
+@MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var panel: FramePanel?
     private var controller: FrameController?
     private var settings: AppSettings?
     private var statusItem: NSStatusItem?
     private var settingsWindow: NSWindow?
+
+    private var chatController: ChatController?
+    private var chatPanel: ChatPanel?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         Permissions.requestScreenCaptureIfNeeded()
@@ -30,6 +34,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         self.controller = controller
         self.panel = panel
 
+        let chatController = ChatController()
+        let chatPanel = ChatPanel(controller: chatController)
+        chatController.panel = chatPanel
+        self.chatController = chatController
+        self.chatPanel = chatPanel
+
         installStatusItem()
     }
 
@@ -39,6 +49,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillTerminate(_ notification: Notification) {
         controller?.persist()
+        chatController?.persist()
     }
 
     private func installStatusItem() {
@@ -47,6 +58,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             button.image = NSImage(systemSymbolName: "camera.viewfinder", accessibilityDescription: "Screenbox")
         }
         let menu = NSMenu()
+
+        let chatItem = NSMenuItem(title: "Chat", action: #selector(toggleChat), keyEquivalent: "k")
+        chatItem.target = self
+        menu.addItem(chatItem)
 
         let settingsItem = NSMenuItem(title: "Settings…", action: #selector(openSettings), keyEquivalent: ",")
         settingsItem.target = self
@@ -60,6 +75,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         item.menu = menu
         self.statusItem = item
+    }
+
+    @objc private func toggleChat() {
+        guard let panel = chatPanel else { return }
+        if panel.isVisible {
+            chatController?.persist()
+            panel.orderOut(nil)
+        } else {
+            panel.makeKeyAndOrderFront(nil)
+            NSApp.activate()
+        }
     }
 
     @objc private func openSettings() {
