@@ -11,18 +11,9 @@ enum ScreenshotError: Error {
 
 enum Screenshotter {
     /// Capture a region of the screen. `globalAppKitRect` is in AppKit coordinates (Y grows up, origin at bottom-left of primary screen).
-    /// The panel is hidden for one composited frame before capture so it does not appear in the output.
+    /// The frame panel is excluded from the ScreenCaptureKit filter rather than hidden, so it stays on screen with no flicker.
     @MainActor
     static func capture(globalAppKitRect rect: NSRect, hiding panel: NSPanel) async throws -> URL {
-        let wasVisible = panel.isVisible
-        panel.orderOut(nil)
-        defer {
-            if wasVisible { panel.orderFront(nil) }
-        }
-
-        // Give the window server one composited frame so the frame is actually gone from the framebuffer.
-        try? await Task.sleep(nanoseconds: 100_000_000)
-
         let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
 
         guard let (scDisplay, nsScreen) = pickDisplay(for: rect, displays: content.displays) else {
@@ -36,7 +27,9 @@ enum Screenshotter {
         let localYTopDown = screenFrame.size.height - (localYAppKit + rect.size.height)
         let localRect = CGRect(x: localX, y: localYTopDown, width: rect.size.width, height: rect.size.height)
 
-        let filter = SCContentFilter(display: scDisplay, excludingWindows: [])
+        let ourWindowID = CGWindowID(panel.windowNumber)
+        let excluded = content.windows.filter { $0.windowID == ourWindowID }
+        let filter = SCContentFilter(display: scDisplay, excludingWindows: excluded)
 
         let config = SCStreamConfiguration()
         let scale = nsScreen.backingScaleFactor
