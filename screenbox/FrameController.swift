@@ -13,6 +13,7 @@ final class FrameController: ObservableObject {
     static let defaultsKey = "screenbox.frame"
 
     weak var panel: FramePanel?
+    @Published var savedIndicator: Bool = false
 
     func restoreFrame() -> NSRect {
         if let arr = UserDefaults.standard.array(forKey: Self.defaultsKey) as? [Double],
@@ -109,6 +110,9 @@ final class FrameController: ObservableObject {
         do {
             let url = try await Screenshotter.capture(globalAppKitRect: inner, hiding: panel)
             NSLog("[screenbox] saved: %@", url.path)
+            savedIndicator = true
+            try? await Task.sleep(nanoseconds: 500_000_000)
+            savedIndicator = false
         } catch {
             NSLog("[screenbox] capture failed: %@", String(describing: error))
             NSSound.beep()

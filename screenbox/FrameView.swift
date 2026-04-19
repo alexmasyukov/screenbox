@@ -47,6 +47,14 @@ struct FrameView: View {
 
                 shutterButton
                     .position(x: geo.size.width - 18, y: 18)
+
+                Circle()
+                    .fill(Color.green)
+                    .frame(width: 8, height: 8)
+                    .opacity(controller.savedIndicator ? 1 : 0)
+                    .animation(.easeOut(duration: 0.15), value: controller.savedIndicator)
+                    .position(x: geo.size.width - 40, y: 18)
+                    .allowsHitTesting(false)
             }
             .frame(width: geo.size.width, height: geo.size.height)
         }
