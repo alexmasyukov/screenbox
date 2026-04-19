@@ -8,12 +8,11 @@ enum Corner: CaseIterable {
 
 @MainActor
 final class FrameController: ObservableObject {
-    static let borderThickness: CGFloat = 6
+    static let borderThickness: CGFloat = 3
     static let minSize = CGSize(width: 200, height: 150)
     static let defaultsKey = "screenbox.frame"
 
     weak var panel: FramePanel?
-    @Published var isFlashing: Bool = false
 
     func restoreFrame() -> NSRect {
         if let arr = UserDefaults.standard.array(forKey: Self.defaultsKey) as? [Double],
@@ -110,17 +109,9 @@ final class FrameController: ObservableObject {
         do {
             let url = try await Screenshotter.capture(globalAppKitRect: inner, hiding: panel)
             NSLog("[screenbox] saved: %@", url.path)
-            flash()
         } catch {
             NSLog("[screenbox] capture failed: %@", String(describing: error))
             NSSound.beep()
-        }
-    }
-
-    private func flash() {
-        isFlashing = true
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
-            self?.isFlashing = false
         }
     }
 

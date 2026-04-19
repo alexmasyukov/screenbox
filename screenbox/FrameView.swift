@@ -5,12 +5,9 @@ struct FrameView: View {
     @ObservedObject var controller: FrameController
 
     private let thickness: CGFloat = FrameController.borderThickness
-    private let handle: CGFloat = 14
-    private let borderColor = Color.red.opacity(0.85)
-    private let handleColor = Color.red.opacity(0.95)
+    private let cornerZone: CGFloat = 14
+    private let borderColor = Color(red: 0.35, green: 0.6, blue: 0.95).opacity(0.85)
 
-    // Drag anchor: mouse position in global screen coords at mouseDown, and the window frame at that moment.
-    // NSEvent.mouseLocation is stable regardless of window movement, unlike SwiftUI .global coords on macOS.
     @State private var anchorMouse: CGPoint? = nil
     @State private var anchorFrame: NSRect? = nil
 
@@ -37,24 +34,19 @@ struct FrameView: View {
                     .position(x: geo.size.width - thickness / 2, y: geo.size.height / 2)
                     .gesture(moveGesture())
 
-                cornerHandle(.topLeft)
-                    .position(x: handle / 2, y: handle / 2)
-                cornerHandle(.topRight)
-                    .position(x: geo.size.width - handle / 2, y: handle / 2)
-                cornerHandle(.bottomLeft)
-                    .position(x: handle / 2, y: geo.size.height - handle / 2)
-                cornerHandle(.bottomRight)
-                    .position(x: geo.size.width - handle / 2, y: geo.size.height - handle / 2)
+                // Invisible corner zones — resize from the closest corner. Kept transparent per spec:
+                // no visible handles, but resize behavior is preserved.
+                invisibleCorner(.topLeft)
+                    .position(x: cornerZone / 2, y: cornerZone / 2)
+                invisibleCorner(.topRight)
+                    .position(x: geo.size.width - cornerZone / 2, y: cornerZone / 2)
+                invisibleCorner(.bottomLeft)
+                    .position(x: cornerZone / 2, y: geo.size.height - cornerZone / 2)
+                invisibleCorner(.bottomRight)
+                    .position(x: geo.size.width - cornerZone / 2, y: geo.size.height - cornerZone / 2)
 
                 shutterButton
                     .position(x: geo.size.width - 18, y: 18)
-
-                if controller.isFlashing {
-                    Rectangle()
-                        .stroke(Color.white, lineWidth: thickness)
-                        .frame(width: geo.size.width, height: geo.size.height)
-                        .allowsHitTesting(false)
-                }
             }
             .frame(width: geo.size.width, height: geo.size.height)
         }
@@ -75,10 +67,10 @@ struct FrameView: View {
         .buttonStyle(.plain)
     }
 
-    private func cornerHandle(_ corner: Corner) -> some View {
+    private func invisibleCorner(_ corner: Corner) -> some View {
         Rectangle()
-            .fill(handleColor)
-            .frame(width: handle, height: handle)
+            .fill(Color.white.opacity(0.001))
+            .frame(width: cornerZone, height: cornerZone)
             .gesture(resizeGesture(corner: corner))
     }
 
